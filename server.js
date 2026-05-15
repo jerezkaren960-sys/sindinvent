@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
 const path = require('path');
@@ -7,22 +8,26 @@ const app = express();
 // ==================== MIDDLEWARE ====================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== CONEXIÓN A MYSQL ====================
+// ==================== CONEXIÓN A MYSQL (CON SOPORTE SSL) ====================
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '12345',
-    database: 'sindinvent'
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '12345',
+    database: process.env.DB_NAME || 'sindinvent',
+    port: process.env.PORT || 3306,
+    ssl: process.env.DB_HOST ? {
+        rejectUnauthorized: false
+    } : null
 });
 
 db.connect(err => {
     if (err) {
-        console.error('❌ Error MySQL:', err.message);
+        console.error('❌ Error MySQL detallado:', err);
         return;
     }
-    console.log('✅ Conectado correctamente a la base de datos sindinvent');
+    console.log('✅ Conectado correctamente a la base de datos');
 });
 
 // ==================== FUNCIÓN DE VALIDACIÓN (Módulo 10) ====================
@@ -118,17 +123,18 @@ app.get('/responsables', (req, res) => {
         res.json(results);
     });
 });
+
 // ==================== RUTA PARA EQUIPOS INFORMÁTICOS ====================
 app.get('/equipos', (req, res) => {
     const sql = `
-        SELECT 
-            codigo_inventario, 
-            tipo_inventario, 
-            marca, 
-            modelo, 
-            numero_serie, 
-            valor 
-        FROM equipos_informaticos 
+        SELECT
+            codigo_inventario,
+            tipo_inventario,
+            marca,
+            modelo,
+            numero_serie,
+            valor
+        FROM equipos_informaticos
         ORDER BY codigo_inventario ASC
     `;
 
@@ -140,37 +146,19 @@ app.get('/equipos', (req, res) => {
         res.json(results);
     });
 });
-// ==========================================
-// 1. RUTA PARA RESPONSABLES 
-// ==========================================
-app.get('/responsables', (req, res) => {
-    const sql = "SELECT nombre_completo, cedula, telefono, area_linea FROM responsables ORDER BY nombre_completo ASC";
+
+// ==================== RUTA PARA ESTADÍSTICAS ====================
+app.get('/api/stats/asignados', (req, res) => {
+    const sql = "SELECT COUNT(*) AS total FROM control_inventario";
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
+        if (err) {
+            console.error("Error en conteo:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ total: results[0].total });
     });
 });
 
-app.get('/api/stats/asignados', (req, res) => {
-    const sql = "SELECT COUNT(*) AS total FROM control_inventario";
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error en conteo:", err);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ total: results[0].total });
-    });
-});
-app.get('/api/stats/asignados', (req, res) => {
-    const sql = "SELECT COUNT(*) AS total FROM control_inventario";
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error en conteo:", err);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ total: results[0].total });
-    });
-});
 app.get('/api/equipos-con-asignacion', (req, res) => {
     const sql = `
         SELECT
@@ -190,7 +178,9 @@ app.get('/api/equipos-con-asignacion', (req, res) => {
         res.json(results);
     });
 });
+
 // ==================== INICIAR SERVIDOR ====================
-app.listen(3000, () => {
-    console.log('🚀 Servidor corriendo en http://localhost:3000');
+const PORT = process.env.SERVER_PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
