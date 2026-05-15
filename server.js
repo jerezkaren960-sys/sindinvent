@@ -10,25 +10,45 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== CONEXIÓN A MYSQL (CON SOPORTE SSL) ====================
-const db = mysql.createConnection({
+// ==================== CONEXIÓN A MYSQL CON RECONEXIÓN AUTOMÁTICA ====================
+const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '12345',
     database: process.env.DB_NAME || 'sindinvent',
-    port: process.env.PORT || 3306,
-    ssl: process.env.DB_HOST ? {
-        rejectUnauthorized: false
-    } : null
-});
+    port: parseInt(process.env.DB_PORT) || 3306,
+    ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : null,
+    connectTimeout: 60000,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+};
 
-db.connect(err => {
-    if (err) {
-        console.error('❌ Error MySQL detallado:', err);
-        return;
-    }
-    console.log('✅ Conectado correctamente a la base de datos');
-});
+let db = mysql.createConnection(dbConfig);
+
+function handleDisconnect() {
+    db.connect(err => {
+        if (err) {
+            console.error('❌ Error al conectar MySQL:', err);
+            setTimeout(handleDisconnect, 2000);
+        } else {
+            console.log('✅ Conectado correctamente a la base de datos');
+        }
+    });
+
+    db.on('error', err => {
+        console.error('❌ Error en MySQL:', err);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+            console.log('🔄 Reconectando...');
+            db = mysql.createConnection(dbConfig);
+            handleDisconnect();
+        } else {
+            throw err;
+        }
+    });
+}
+
+handleDisconnect();
 
 // ==================== FUNCIÓN DE VALIDACIÓN (Módulo 10) ====================
 function validarCedula(cedula) {
@@ -52,19 +72,16 @@ function validarCedula(cedula) {
 
 // ==================== RUTAS POST (GUARDADO) ====================
 
-// Registro de Responsable con Validación de Cédula
 app.post('/guardar-responsable', (req, res) => {
     const { nombre, telefono, cedula, area } = req.body;
 
-    // 1. Validar que los campos no estén vacíos
     if (!nombre || !cedula || !area) {
         return res.status(400).send('❌ Faltan datos obligatorios. <a href="index.html">Volver</a>');
     }
 
-    // 2. Ejecutar validación de Algoritmo Módulo 10
     if (!validarCedula(cedula)) {
         console.warn(`⚠️ Intento de registro con cédula inválida: ${cedula}`);
-        return res.status(400).send('❌ La cédula ingresada es incorrecta o no existe. <a href="index.html">Volver</a>');
+        return res.status(400).send('❌ La cédula ingresada es incorrecta. <a href="index.html">Volver</a>');
     }
 
     const sql = `INSERT INTO responsables (nombre, telefono, cedula, area) VALUES (?, ?, ?, ?)`;
@@ -81,7 +98,7 @@ app.post('/guardar-equipo', (req, res) => {
     const { codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor, estado } = req.body;
     const sql = `INSERT INTO equipos_informaticos (codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor, estado) VALUES (?, ?, ?, ?, ?, ?, ?)`;
     db.query(sql, [codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor || 0, estado || 'Disponible'], (err) => {
-        if (err) return res.send('❌ Error: ' + err.message);
+        if (err) return res.status(500).send('❌ Error: ' + err.message);
         res.send(`✅ Equipo guardado.<br><a href="index.html">Volver</a>`);
     });
 });
@@ -90,7 +107,7 @@ app.post('/guardar-asignacion', (req, res) => {
     const { codigo_inventario, responsable_id, fecha_asignada, fecha_devolucion, observaciones } = req.body;
     const sql = `INSERT INTO control_inventario (codigo_inventario, responsable_id, fecha_asignada, fecha_devolucion, estado_equipo, observaciones) VALUES (?, ?, ?, ?, 'Asignado', ?)`;
     db.query(sql, [codigo_inventario, responsable_id, fecha_asignada, fecha_devolucion || null, observaciones], (err) => {
-        if (err) return res.send('❌ Error al asignar: ' + err.message);
+        if (err) return res.status(500).send('❌ Error al asignar: ' + err.message);
         res.send(`✅ Asignación registrada.<br><a href="index.html">Volver</a>`);
     });
 });
@@ -98,24 +115,21 @@ app.post('/guardar-asignacion', (req, res) => {
 // ==================== RUTAS API (GET) ====================
 
 app.get('/api/responsables', (req, res) => {
-    const sql = 'SELECT * FROM responsables ORDER BY nombre ASC';
-    db.query(sql, (err, results) => {
+    db.query('SELECT * FROM responsables ORDER BY nombre ASC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
 });
 
 app.get('/api/equipos', (req, res) => {
-    const sql = 'SELECT codigo_inventario, tipo_inventario, marca, modelo FROM equipos_informaticos ORDER BY codigo_inventario ASC';
-    db.query(sql, (err, results) => {
+    db.query('SELECT codigo_inventario, tipo_inventario, marca, modelo FROM equipos_informaticos ORDER BY codigo_inventario ASC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
 });
 
 app.get('/responsables', (req, res) => {
-    const sql = 'SELECT * FROM responsables ORDER BY nombre ASC';
-    db.query(sql, (err, results) => {
+    db.query('SELECT * FROM responsables ORDER BY nombre ASC', (err, results) => {
         if (err) {
             console.error('Error en consulta:', err);
             return res.status(500).json({ error: err.message });
@@ -124,20 +138,8 @@ app.get('/responsables', (req, res) => {
     });
 });
 
-// ==================== RUTA PARA EQUIPOS INFORMÁTICOS ====================
 app.get('/equipos', (req, res) => {
-    const sql = `
-        SELECT
-            codigo_inventario,
-            tipo_inventario,
-            marca,
-            modelo,
-            numero_serie,
-            valor
-        FROM equipos_informaticos
-        ORDER BY codigo_inventario ASC
-    `;
-
+    const sql = `SELECT codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor FROM equipos_informaticos ORDER BY codigo_inventario ASC`;
     db.query(sql, (err, results) => {
         if (err) {
             console.error('❌ Error en la base de datos:', err.message);
@@ -147,10 +149,8 @@ app.get('/equipos', (req, res) => {
     });
 });
 
-// ==================== RUTA PARA ESTADÍSTICAS ====================
 app.get('/api/stats/asignados', (req, res) => {
-    const sql = "SELECT COUNT(*) AS total FROM control_inventario";
-    db.query(sql, (err, results) => {
+    db.query("SELECT COUNT(*) AS total FROM control_inventario", (err, results) => {
         if (err) {
             console.error("Error en conteo:", err);
             return res.status(500).json({ error: err.message });
@@ -170,8 +170,8 @@ app.get('/api/equipos-con-asignacion', (req, res) => {
             COALESCE(r.nombre, 'Sin asignar') AS nombre_responsable,
             c.fecha_asignada
         FROM equipos_informaticos e
-        LEFT JOIN control_inventario c ON e.codigo_inventario = c.codigo_inventario
-        LEFT JOIN responsables r ON c.responsable_id = r.cedula
+                 LEFT JOIN control_inventario c ON e.codigo_inventario = c.codigo_inventario
+                 LEFT JOIN responsables r ON c.responsable_id = r.cedula
     `;
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
