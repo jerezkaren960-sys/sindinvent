@@ -5,54 +5,66 @@ const path = require('path');
 
 const app = express();
 
-// ==================== MIDDLEWARE ====================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== CONEXIÓN CON URI ====================
-let db;
+// Conexión a la base de datos
+const db = mysql.createConnection(process.env.DATABASE_URL);
 
-function connectDB() {
-    if (process.env.DATABASE_URL) {
-        // Usar URI completa (Aiven)
-        db = mysql.createConnection(process.env.DATABASE_URL);
-    } else {
-        // Usar variables separadas (local)
-        db = mysql.createConnection({
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'sindinvent',
-            port: process.env.DB_PORT || 3306
-        });
+db.connect(err => {
+    if (err) {
+        console.error('❌ Error MySQL:', err);
+        process.exit(1);
     }
+    console.log('✅ Conectado a la base de datos');
 
-    db.connect(err => {
+    // Crear tablas automáticamente
+    const crearTablas = `
+        CREATE TABLE IF NOT EXISTS responsables (
+            nombre varchar(150) NOT NULL,
+            telefono varchar(15) DEFAULT NULL,
+            cedula varchar(10) NOT NULL,
+            area varchar(100) DEFAULT NULL,
+            activo tinyint(1) DEFAULT 1,
+            fecha_registro timestamp DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (cedula)
+        );
+        
+        CREATE TABLE IF NOT EXISTS equipos_informaticos (
+            codigo_inventario varchar(50) NOT NULL,
+            tipo_inventario varchar(80) NOT NULL,
+            marca varchar(100) DEFAULT NULL,
+            modelo varchar(100) DEFAULT NULL,
+            numero_serie varchar(100) DEFAULT NULL,
+            estado varchar(20) DEFAULT 'Disponible',
+            valor decimal(12,2) DEFAULT NULL,
+            fecha_registro timestamp DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (codigo_inventario)
+        );
+        
+        CREATE TABLE IF NOT EXISTS control_inventario (
+            codigo_inventario varchar(50) NOT NULL,
+            responsable_id varchar(10) NOT NULL,
+            fecha_asignada date NOT NULL,
+            fecha_devolucion date DEFAULT NULL,
+            estado_equipo varchar(20) DEFAULT 'Asignado',
+            observaciones text,
+            fecha_registro timestamp DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (codigo_inventario)
+        );
+    `;
+
+    db.query(crearTablas, (err) => {
         if (err) {
-            console.error('❌ Error MySQL:', err.message);
-            setTimeout(connectDB, 2000);
+            console.error('❌ Error creando tablas:', err);
         } else {
-            console.log('✅ Conectado a la base de datos');
+            console.log('✅ Tablas creadas/verificadas correctamente');
         }
     });
+});
 
-    db.on('error', err => {
-        console.error('❌ Error en MySQL:', err.message);
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            connectDB();
-        }
-    });
-}
-
-connectDB();
-
-// ==================== FUNCIÓN PARA QUERYS ====================
-function query(sql, params, callback) {
-    db.query(sql, params, callback);
-}
-
-// ==================== FUNCIÓN DE VALIDACIÓN ====================
+// Función de validación
 function validarCedula(cedula) {
     if (!cedula || cedula.length !== 10 || isNaN(cedula)) return false;
     const provincia = parseInt(cedula.substring(0, 2), 10);
@@ -68,8 +80,7 @@ function validarCedula(cedula) {
     return digitoVerificador === v[9];
 }
 
-// ==================== RUTAS POST ====================
-
+// RUTAS POST
 app.post('/guardar-responsable', (req, res) => {
     const { nombre, telefono, cedula, area } = req.body;
     if (!nombre || !cedula || !area) {
@@ -80,10 +91,7 @@ app.post('/guardar-responsable', (req, res) => {
     }
     const sql = `INSERT INTO responsables (nombre, telefono, cedula, area) VALUES (?, ?, ?, ?)`;
     db.query(sql, [nombre, telefono || null, cedula, area], (err) => {
-        if (err) {
-            console.error('❌ Error:', err.message);
-            return res.status(500).send('❌ Error: ' + err.message);
-        }
+        if (err) return res.status(500).send('❌ Error: ' + err.message);
         res.send(`✅ Responsable ${nombre} guardado.<br><a href="index.html">Volver</a>`);
     });
 });
@@ -106,8 +114,7 @@ app.post('/guardar-asignacion', (req, res) => {
     });
 });
 
-// ==================== RUTAS GET ====================
-
+// RUTAS GET
 app.get('/api/responsables', (req, res) => {
     db.query('SELECT * FROM responsables ORDER BY nombre ASC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -130,8 +137,7 @@ app.get('/responsables', (req, res) => {
 });
 
 app.get('/equipos', (req, res) => {
-    const sql = `SELECT codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor FROM equipos_informaticos ORDER BY codigo_inventario ASC`;
-    db.query(sql, (err, results) => {
+    db.query('SELECT codigo_inventario, tipo_inventario, marca, modelo, numero_serie, valor FROM equipos_informaticos ORDER BY codigo_inventario ASC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
@@ -146,14 +152,10 @@ app.get('/api/stats/asignados', (req, res) => {
 
 app.get('/api/equipos-con-asignacion', (req, res) => {
     const sql = `
-        SELECT
-            e.codigo_inventario,
-            e.tipo_inventario,
-            e.marca,
-            e.modelo,
-            r.area AS area_resultado,
-            COALESCE(r.nombre, 'Sin asignar') AS nombre_responsable,
-            c.fecha_asignada
+        SELECT e.codigo_inventario, e.tipo_inventario, e.marca, e.modelo,
+               r.area AS area_resultado,
+               COALESCE(r.nombre, 'Sin asignar') AS nombre_responsable,
+               c.fecha_asignada
         FROM equipos_informaticos e
         LEFT JOIN control_inventario c ON e.codigo_inventario = c.codigo_inventario
         LEFT JOIN responsables r ON c.responsable_id = r.cedula
@@ -164,7 +166,6 @@ app.get('/api/equipos-con-asignacion', (req, res) => {
     });
 });
 
-// ==================== INICIAR SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
