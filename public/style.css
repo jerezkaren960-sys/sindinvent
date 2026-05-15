@@ -1,0 +1,315 @@
+:root {
+    --azul-principal: #1a3a8a; /* Azul oscuro del logo */
+    --azul-claro: #2563eb;
+    --dorado: #c5a059; /* Dorado metálico */
+    --dorado-brillante: #f1d279;
+    --blanco: #ffffff;
+    --gris-fondo: #f8f9fa;
+}
+
+body {
+    background-color: var(--gris-fondo);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+}
+
+/* Navbar Profesional */
+.navbar {
+    background: linear-gradient(135deg, var(--azul-principal) 0%, #0d1b3e 100%);
+    border-bottom: 3px solid var(--dorado);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--dorado-brillante) !important;
+}
+
+.navbar-brand img {
+    height: 50px;
+    margin-right: 10px;
+    filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
+}
+
+.nav-link {
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--dorado-brillante) !important;
+}
+
+/* Header */
+.dashboard-header h1 {
+    color: var(--azul-principal);
+    font-weight: 1200;
+}
+
+/* Tarjetas de Estadísticas */
+.card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-bottom: 4px solid var(--dorado);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    color: var(--azul-principal);
+    margin-bottom: 15px;
+}
+
+.stats-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #222;
+}
+
+/* Sección de Conexión */
+.connection-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    border-left: 6px solid var(--azul-principal);
+}
+
+.btn-gold {
+    background: linear-gradient(to bottom, var(--dorado-brillante), var(--dorado));
+    color: #000;
+    border: none;
+    font-weight: 600;
+}
+
+.btn-gold:hover {
+    background: var(--azul-principal);
+    color: white;
+}
+
+/* Tablas */
+.table thead {
+    background-color: var(--azul-principal);
+    color: white;
+}
+
+/* Footer */
+.footer {
+    background-color: #111;
+    color: #aaa;
+    padding: 40px 0;
+    text-align: center;
+    border-top: 4px solid var(--dorado);
+}
+:root {
+    --azul-dark: #0d1b3e;
+    --azul-sindicato: #1a3a8a;
+    --dorado: #c5a059;
+    --dorado-glow: #f1d279;
+    --blanco: #ffffff;
+    --gris-suave: #f4f7f6;
+}
+
+body {
+    background-color: var(--gris-suave);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar Expandida */
+.navbar {
+    background: linear-gradient(135deg, var(--azul-sindicato) 0%, var(--azul-dark) 100%);
+    border-bottom: 5px solid var(--dorado);
+    padding: 1rem 0;
+}
+
+.navbar-brand img {
+    height: 100px; /* Tamaño grande solicitado */
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+/* Contenedores de Formulario */
+.form-card {
+    background: var(--blanco);
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.form-header {
+    background: var(--azul-sindicato);
+    color: var(--blanco);
+    padding: 20px;
+    border-bottom: 4px solid var(--dorado);
+}
+
+.btn-save {
+    background: linear-gradient(to right, var(--azul-sindicato), var(--azul-dark));
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(26, 58, 138, 0.4);
+    color: var(--dorado-glow);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--azul-dark);
+}
+/* ====================== ESTILOS PARA LA PÁGINA DE ASIGNAR EQUIPO ====================== */
+
+.navbar {
+    background: linear-gradient(135deg, #1a3a8a, #0d1b3e) !important;
+    border-bottom: 4px solid #c5a059;
+}
+
+.navbar-brand img {
+    height: 45px;
+}
+
+.card {
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    border: none;
+}
+
+.card-header.bg-success {
+    background: #198754 !important;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+}
+
+.btn-success {
+    background: #198754;
+    border: none;
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: #146c43;
+    transform: translateY(-2px);
+}
+
+/* Ajustes para que se vea más limpio como en la imagen */
+.main-container {
+    padding: 20px;
+}
+
+.form-control {
+    font-size: 1.05rem;
+    padding: 12px;
+}
+
+small.text-muted {
+    font-size: 0.9rem;
+}
+/* ====================== ESTILOS PARA PÁGINA DE RESPONSABLES ====================== */
+
+.page-header {
+    margin-bottom: 0;
+}
+
+.card-header {
+    background: var(--azul-sindicato) !important;
+    color: white !important;
+    border-bottom: 4px solid var(--dorado) !important;
+}
+
+.badge-area {
+    background: var(--dorado) !important;
+    color: #000 !important;
+    box-shadow: 0 2px 6px rgba(197, 160, 89, 0.3);
+}
+
+/* Mejorar botones pequeños */
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 0.95rem;
+}
+/* ====================== ESTILOS PARA PÁGINA DE MANTENIMIENTO ====================== */
+
+.page-header {
+    margin-bottom: 0;
+}
+
+.card-header {
+    background: var(--azul-sindicato) !important;
+    color: white !important;
+    border-bottom: 4px solid var(--dorado) !important;
+}
+
+.status {
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+}
+/* ====================== ESTILOS PARA PÁGINA DE EQUIPOS ====================== */
+
+.page-header {
+    margin-bottom: 0;
+}
+
+.card-header {
+    background: var(--azul-sindicato) !important;
+    color: white !important;
+    border-bottom: 4px solid var(--dorado) !important;
+}
+
+.valor {
+    font-weight: 700;
+    color: var(--azul-sindicato);
+}
+
+/* Alineación derecha en la columna de valor */
+.table td.text-end {
+    font-variant-numeric: tabular-nums;
+}
+/* ====================== ESTILOS PARA PÁGINA PRINCIPAL (INDEX) ====================== */
+
+.hero-section {
+    margin-bottom: 0;
+}
+
+.stats-card {
+    border-bottom: 5px solid var(--dorado);
+}
+
+.recent-table th {
+    background: var(--azul-sindicato) !important;
+    color: white !important;
+}
+
+.btn-gold {
+    background: linear-gradient(to bottom, var(--dorado-brillante), var(--dorado));
+    color: #000;
+    border: none;
+    font-weight: 600;
+}
+
+.btn-gold:hover {
+    background: var(--azul-sindicato);
+    color: white;
+    transform: translateY(-2px);
+}
